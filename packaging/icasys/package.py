@@ -9,7 +9,7 @@
 Config: packaging/icasys/icasys.json (written by icasys-brand/apply-branding.py).
 Nothing here is signed or notarised: the notes and the LEEME say so explicitly.
 """
-import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tarfile, zipfile
+import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tarfile, time, zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -114,7 +114,15 @@ def macos(out: Path):
     (stage / "LEEME.txt").write_text(leeme("macos"), encoding="utf-8")
     os.symlink("/Applications", stage / "Aplicaciones")
     dmg = out / f"icasys-{SLUG}-{VERSION}-macos-{arch}.dmg"
-    sh("hdiutil", "create", "-quiet", "-volname", f"{NAME} {VERSION}", "-srcfolder", stage, "-ov", "-format", "UDZO", dmg)
+    for attempt in range(1, 5):   # hdiutil on CI runners sometimes fails with "Resource busy": retry, and show why if it keeps failing
+        r = subprocess.run(["hdiutil", "create", "-volname", f"{NAME} {VERSION}", "-srcfolder", str(stage), "-ov", "-format", "UDZO", str(dmg)],
+                           capture_output=True, text=True, encoding="utf-8")
+        if r.returncode == 0:
+            break
+        print(f"hdiutil intento {attempt} falló ({r.returncode}): {r.stdout.strip()} {r.stderr.strip()}", file=sys.stderr)
+        time.sleep(20)
+    else:
+        sys.exit("hdiutil create falló 4 veces")
     shutil.rmtree(stage)
     notarized = False
     if ident:
