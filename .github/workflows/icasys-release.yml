@@ -156,8 +156,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          shopt -s nullglob
-          files=(dist/*.dmg dist/*.tar.gz dist/*.deb dist/*.zip dist/SHA256SUMS.txt dist/SHA256SUMS.txt.asc dist/ICASYS-firma-publica.asc dist/manifest.json)
+          files=()
+          for f in dist/*.dmg dist/*.tar.gz dist/*.deb dist/*.zip dist/SHA256SUMS.txt dist/SHA256SUMS.txt.asc dist/ICASYS-firma-publica.asc dist/manifest.json; do
+            [ -f "$f" ] && files+=("$f")   # the optional GPG files only exist when signing secrets are set
+          done
           gh release create "$GITHUB_REF_NAME" --draft --prerelease --target "$GITHUB_SHA" \
             --title "$(cat dist/title.txt)" --notes-file dist/RELEASE_NOTES.md "${files[@]}"
       - uses: actions/upload-artifact@v4

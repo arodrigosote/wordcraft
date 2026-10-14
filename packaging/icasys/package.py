@@ -243,9 +243,11 @@ def release(dist: Path):
         "upstream_base": CFG.get("upstream_base", ""), "signing": sign, "assets": assets,
         "source": f"https://github.com/{OWNER}/{APP}/tree/{c}"}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     mb = lambda n: f"{n / 1048576:.0f} MB"
-    rows = "\n".join(f"| `{a['file']}` | {a['os']} | {a['arch']} | {mb(a['size_bytes'])} | {a['signing'].get('how', '?')}{' + notarizado' if a['signing'].get('notarized') else ''} |" for a in assets)
+    osn = {"macos": "macOS", "windows": "Windows", "linux": "Linux"}
+    archn = {"universal": "Apple Silicon e Intel", "arm64": "Apple Silicon / ARM64", "x64": "Intel/AMD 64 bits (x64)"}
+    rows = "\n".join(f"| `{a['file']}` | {osn.get(a['os'], a['os'])} | {archn.get(a['arch'], a['arch'])} | {mb(a['size_bytes'])} | {a['signing'].get('how', '?')}{' + notarizado' if a['signing'].get('notarized') else ''} |" for a in assets)
     unsigned = [o for o, v in sign.items() if o in {a['os'] for a in assets} and not v.get("signed")]
-    warn = ("\n## ⚠️ Vista previa: sin firma de distribución en " + ", ".join(unsigned) + "\n\nEstos paquetes no están firmados"
+    warn = ("\n## ⚠️ Vista previa: sin firma de distribución en " + ", ".join(osn.get(o, o) for o in unsigned) + "\n\nEstos paquetes no están firmados"
             + (" ni notarizados" if "macos" in unsigned else "") + f". {'macOS' if 'macos' in unsigned else 'El sistema'} o Windows pueden mostrar una advertencia la primera vez; el `LEEME` de cada paquete explica cómo abrirlos. "
             "Descárgalos solo de esta página o del sitio oficial de ICASYS y comprueba la suma SHA-256.\n") if unsigned else ""
     (dist / "title.txt").write_text(f"{NAME} {VERSION} · edición ICASYS 1" + (" (vista previa)" if unsigned else ""), encoding="utf-8")
