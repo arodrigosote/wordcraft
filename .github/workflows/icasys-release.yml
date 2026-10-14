@@ -71,8 +71,52 @@ jobs:
           CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
         run: cargo build --release --locked -p wordcraft
 
+      # --- Optional signing. Secrets are read ONLY here (never during `cargo build`, which runs third-party build scripts).
+      #     Without the secrets the packages are built unsigned and the release notes say so.
+      - name: Which signing credentials exist?
+        id: sec
+        shell: bash
+        run: |
+          echo "apple=${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}" >> "$GITHUB_OUTPUT"
+          echo "windows=${{ secrets.WINDOWS_CERTIFICATE != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Import Apple Developer ID certificate
+        if: runner.os == 'macOS' && steps.sec.outputs.apple == 'true'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/icasys-build.keychain-db"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KC"
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          ID="$(security find-identity -v -p codesigning "$KC" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)"
+          [ -n "$ID" ] || { echo "No hay una identidad 'Developer ID Application' en el certificado"; exit 1; }
+          echo "APPLE_SIGNING_IDENTITY=$ID" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      - name: Prepare Windows certificate
+        if: runner.os == 'Windows' && steps.sec.outputs.windows == 'true'
+        shell: bash
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          echo "$WINDOWS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/win.pfx"
+          echo "WIN_SIGN_PFX=$RUNNER_TEMP/win.pfx" >> "$GITHUB_ENV"
+
       - name: Package
         shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WIN_SIGN_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: ${{ matrix.py }} packaging/icasys/package.py ${{ matrix.os_name }} --out dist
 
       - uses: actions/upload-artifact@v4
@@ -93,16 +137,28 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Manifest, checksums and notes
+      - name: Checksums
+        run: python3 packaging/icasys/package.py release --dist dist
+      - name: Sign the checksums with GPG (optional)
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then echo "Sin clave GPG: la suma SHA-256 queda sin firmar."; exit 0; fi
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign -o dist/SHA256SUMS.txt.asc dist/SHA256SUMS.txt
+          gpg --armor --export > dist/ICASYS-firma-publica.asc
+      - name: Manifest and notes
         run: python3 packaging/icasys/package.py release --dist dist
       - name: Draft pre-release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-test')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          shopt -s nullglob
+          files=(dist/*.dmg dist/*.tar.gz dist/*.deb dist/*.zip dist/SHA256SUMS.txt dist/SHA256SUMS.txt.asc dist/ICASYS-firma-publica.asc dist/manifest.json)
           gh release create "$GITHUB_REF_NAME" --draft --prerelease --target "$GITHUB_SHA" \
-            --title "$(cat dist/title.txt)" --notes-file dist/RELEASE_NOTES.md \
-            dist/*.dmg dist/*.tar.gz dist/*.deb dist/*.zip dist/SHA256SUMS.txt dist/manifest.json
+            --title "$(cat dist/title.txt)" --notes-file dist/RELEASE_NOTES.md "${files[@]}"
       - uses: actions/upload-artifact@v4
         with:
           name: release-files

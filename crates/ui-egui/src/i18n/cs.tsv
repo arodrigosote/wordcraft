@@ -106,7 +106,7 @@
 	Automatic Table 1 (3 levels)	Automatický obsah 1 (3 úrovně)
 	Automatic Table 2 (2 levels)	Automatický obsah 2 (2 úrovně)
 	AutoSave	Automatické ukládání
-	AutoSave documents you have saved in ICASYS Documentos	Automaticky ukládat dokumenty uložené ve ICASYS Documentosu
+	AutoSave documents you have saved in ICASYS Documentos	Automaticky ukládat dokumenty uložené ve WordCraftu
 	AutoSave failed: {error}. Save the document to turn AutoSave back on.	Automatické ukládání selhalo: {error}. Uložením dokumentu automatické ukládání znovu zapnete.
 	AutoSave isn't available in the browser: it can't write to your files. Save downloads a copy.	Automatické ukládání není v prohlížeči dostupné, protože nemůže zapisovat do vašich souborů. Příkaz Uložit stáhne kopii.
 	AutoSave only keeps .docx, .odt and .rtf files; {name} can't keep all formatting. Save as .docx to turn on AutoSave.	Automatické ukládání podporuje pouze soubory .docx, .odt a .rtf; formát {name} nedokáže zachovat veškeré formátování. Pro zapnutí automatického ukládání uložte dokument jako .docx.
@@ -1924,8 +1924,8 @@
 	This folder can't be read: {error}	Tuto složku nelze přečíst: {error}
 	Showing the first {count} items.	Zobrazuje se prvních {count} položek.
 	File name:	Název souboru:
-	Browse in ICASYS Documentos…	Procházet ve ICASYS Documentosu…
-	Open a file with ICASYS Documentos's own browser when the system file dialog doesn't appear.	Otevřít soubor pomocí vlastního prohlížeče souborů ICASYS Documentosu, když se systémový dialog pro práci se soubory nezobrazí.
+	Browse in ICASYS Documentos…	Procházet ve WordCraftu…
+	Open a file with ICASYS Documentos's own browser when the system file dialog doesn't appear.	Otevřít soubor pomocí vlastního prohlížeče souborů WordCraftu, když se systémový dialog pro práci se soubory nezobrazí.
 	Hide White Space	Skrýt prázdné místo
 	All pages	Všechny stránky
 	Current page	Aktuální stránka
@@ -2053,14 +2053,14 @@
 	Undo 1 Action	Vrátit 1 akci
 	Undo {n} Actions	Vrátit akce: {n}
 	Start-up	Spuštění
-	Show the Start screen when ICASYS Documentos starts	Při spuštění ICASYS Documentosu zobrazit úvodní obrazovku
+	Show the Start screen when ICASYS Documentos starts	Při spuštění WordCraftu zobrazit úvodní obrazovku
 	On: ICASYS Documentos opens on File › Home, with a blank document, the templates and your recent documents. Off: it opens a blank document.	Zapnuto: ICASYS Documentos se otevře na kartě Soubor › Domů s prázdným dokumentem, šablonami a nedávnými dokumenty. Vypnuto: otevře prázdný dokument.
 	Couldn't make ICASYS Documentos the default: {error}	ICASYS Documentos se nepodařilo nastavit jako výchozí: {error}
 	In Default apps, choose ICASYS Documentos for the document types you want it to open.	Ve Výchozích aplikacích vyberte ICASYS Documentos pro typy dokumentů, které má otevírat.
 	Make ICASYS Documentos the default for Word documents…	Nastavit ICASYS Documentos jako výchozí pro dokumenty Word…
-	Opens .docx, .doc, .rtf and .odt files and Word templates with ICASYS Documentos from now on.	Soubory .docx, .doc, .rtf a .odt a šablony Wordu se od teď otevírají ve ICASYS Documentosu.
+	Opens .docx, .doc, .rtf and .odt files and Word templates with ICASYS Documentos from now on.	Soubory .docx, .doc, .rtf a .odt a šablony Wordu se od teď otevírají ve WordCraftu.
 	Opens Settings › Default apps, where you choose ICASYS Documentos for .docx and the other document types.	Otevře Nastavení › Výchozí aplikace, kde zvolíte ICASYS Documentos pro .docx a další typy dokumentů.
-	To open Word documents with ICASYS Documentos by default: select one in Finder, choose File › Get Info, pick ICASYS Documentos under Open with, then click Change All.	Chcete-li dokumenty Word otevírat ve ICASYS Documentosu jako výchozí: vyberte jeden ve Finderu, zvolte Soubor › Informace, v části „Otevřít v aplikaci“ vyberte ICASYS Documentos a klikněte na „Změnit vše“.
+	To open Word documents with ICASYS Documentos by default: select one in Finder, choose File › Get Info, pick ICASYS Documentos under Open with, then click Change All.	Chcete-li dokumenty Word otevírat ve WordCraftu jako výchozí: vyberte jeden ve Finderu, zvolte Soubor › Informace, v části „Otevřít v aplikaci“ vyberte ICASYS Documentos a klikněte na „Změnit vše“.
 	ICASYS Documentos is now the default app for Word documents.	ICASYS Documentos je nyní výchozí aplikací pro dokumenty Word.
 	Numerals:	Číslice:
 	Numerals	Číslice

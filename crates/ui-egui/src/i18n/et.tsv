@@ -13,7 +13,7 @@
 	1.5 Line Spacing	Reavahe 1,5
 	A free, open-source word processor written from scratch in Rust.\nICASYS edition, based on WordCraft by the ArtCraft team.	A free, open-source word processor written from scratch in Rust.\nICASYS edition, based on WordCraft by the ArtCraft team.
 	About	Teave
-	About ICASYS Documentos	ICASYS Documentosi teave
+	About ICASYS Documentos	WordCrafti teave
 	Accept	Nõustu
 	Accept All Changes	Nõustu kõigi muudatustega
 	Accept This Change	Nõustu selle muudatusega
@@ -423,7 +423,7 @@
 	Links	Lingid
 	Location: {path}	Asukoht: {path}
 	Mirror indents	Peegelda taanded
-	MIT OR Apache-2.0. Copyright (c) 2026 ArtCraft Team and the WordCraft contributors.	MIT OR Apache-2.0. Autoriõigus (c) 2026 ArtCrafti meeskond ja ICASYS Documentosi kaasautorid.
+	MIT OR Apache-2.0. Copyright (c) 2026 ArtCraft Team and the WordCraft contributors.	MIT OR Apache-2.0. Autoriõigus (c) 2026 ArtCrafti meeskond ja WordCrafti kaasautorid.
 	Macros	Makrod
 	Mailings	Postitused
 	Manage Sources	Halda allikaid
@@ -941,7 +941,7 @@
 	Stopped	Lõpetatud
 	Speed	Kiirus
 	Normal speed	Tavaline kiirus
-	AutoSave documents you have saved in ICASYS Documentos	Salvesta ICASYS Documentosis salvestatud dokumendid automaatselt
+	AutoSave documents you have saved in ICASYS Documentos	Salvesta WordCraftis salvestatud dokumendid automaatselt
 	AutoSave failed: {error}. Save the document to turn AutoSave back on.	Automaatsalvestus ebaõnnestus: {error}. Selle uuesti sisse lülitamiseks salvesta dokument.
 	Couldn't download {name}: {error}	Faili {name} allalaadimine ebaõnnestus: {error}
 	Do you want to save changes to {name}?	Kas soovid faili {name} muudatused salvestada?
@@ -1619,12 +1619,12 @@
 	Hindi	Hindi
 	Context	Kontekst
 	System	Süsteem
-	Couldn't make ICASYS Documentos the default: {error}	ICASYS Documentosi ei õnnestunud vaikerakenduseks määrata: {error}
+	Couldn't make ICASYS Documentos the default: {error}	WordCrafti ei õnnestunud vaikerakenduseks määrata: {error}
 	In Default apps, choose ICASYS Documentos for the document types you want it to open.	Vali jaotises „Vaikerakendused“ ICASYS Documentos nende dokumenditüüpide jaoks, mida see peaks avama.
 	Make ICASYS Documentos the default for Word documents…	Määra ICASYS Documentos Wordi dokumentide vaikerakenduseks…
-	Opens .docx, .doc, .rtf and .odt files and Word templates with ICASYS Documentos from now on.	Edaspidi avatakse .docx-, .doc-, .rtf- ja .odt-failid ning Wordi mallid ICASYS Documentosiga.
-	Opens Settings › Default apps, where you choose ICASYS Documentos for .docx and the other document types.	Avab Sätted › Vaikerakendused, kus saad valida ICASYS Documentosi .docx-i ja teiste dokumenditüüpide jaoks.
-	To open Word documents with ICASYS Documentos by default: select one in Finder, choose File › Get Info, pick ICASYS Documentos under Open with, then click Change All.	Wordi dokumentide vaikimisi avamiseks ICASYS Documentosiga vali Finderis üks dokument, vali Fail › Hangi teave, vali jaotises „Ava rakendusega“ ICASYS Documentos ja klõpsa „Muuda kõiki“.
+	Opens .docx, .doc, .rtf and .odt files and Word templates with ICASYS Documentos from now on.	Edaspidi avatakse .docx-, .doc-, .rtf- ja .odt-failid ning Wordi mallid WordCraftiga.
+	Opens Settings › Default apps, where you choose ICASYS Documentos for .docx and the other document types.	Avab Sätted › Vaikerakendused, kus saad valida WordCrafti .docx-i ja teiste dokumenditüüpide jaoks.
+	To open Word documents with ICASYS Documentos by default: select one in Finder, choose File › Get Info, pick ICASYS Documentos under Open with, then click Change All.	Wordi dokumentide vaikimisi avamiseks WordCraftiga vali Finderis üks dokument, vali Fail › Hangi teave, vali jaotises „Ava rakendusega“ ICASYS Documentos ja klõpsa „Muuda kõiki“.
 	ICASYS Documentos is now the default app for Word documents.	ICASYS Documentos on nüüd Wordi dokumentide vaikerakendus.
 	Templates	Mallid
 	Templates and Add-ins	Mallid ja lisandmoodulid
@@ -1736,8 +1736,8 @@
 	This folder can't be read: {error}	Seda kausta ei saa lugeda: {error}
 	Showing the first {count} items.	Kuvatud on ainult esimesed kirjed: {count}.
 	File name:	Faili nimi:
-	Browse in ICASYS Documentos…	Sirvi ICASYS Documentosis…
-	Open a file with ICASYS Documentos's own browser when the system file dialog doesn't appear.	Ava fail ICASYS Documentosi enda failisirvijaga, kui süsteemi failidialoog ei ilmu.
+	Browse in ICASYS Documentos…	Sirvi WordCraftis…
+	Open a file with ICASYS Documentos's own browser when the system file dialog doesn't appear.	Ava fail WordCrafti enda failisirvijaga, kui süsteemi failidialoog ei ilmu.
 	Hide White Space	Peida tühi ala lehtede vahel
 	All pages	Kõik leheküljed
 	Current page	Praegune lehekülg
@@ -2105,5 +2105,5 @@
 	Region:	Piirkond:
 	Automatic ({region})	Automaatne ({region})
 	Start-up	Käivitamine
-	Show the Start screen when ICASYS Documentos starts	Näita ICASYS Documentosi käivitamisel avakuva
+	Show the Start screen when ICASYS Documentos starts	Näita WordCrafti käivitamisel avakuva
 	On: ICASYS Documentos opens on File › Home, with a blank document, the templates and your recent documents. Off: it opens a blank document.	Sees: ICASYS Documentos avaneb vaates Fail › Avaleht, kus on tühi dokument, mallid ja hiljutised dokumendid. Väljas: avaneb tühi dokument.

@@ -830,7 +830,7 @@
 	Show documents with their colours inverted, like View › Switch Modes. Saving, printing and PDFs are unchanged.	A dokumentumok fordított színekkel jelennek meg, mint a Nézet › Módváltás esetén. A mentés, a nyomtatás és a PDF változatlan marad.
 	Only web (http, https) and email (mailto) links can be followed	Csak webes (http, https) és e-mail (mailto) link nyitható meg
 	Apply Styles	Stílusok alkalmazása
-	AutoSave documents you have saved in ICASYS Documentos	A ICASYS Documentosban mentett dokumentumok automatikus mentése
+	AutoSave documents you have saved in ICASYS Documentos	A WordCraftban mentett dokumentumok automatikus mentése
 	AutoSave failed: {error}. Save the document to turn AutoSave back on.	Az automatikus mentés sikertelen: {error}. Az újbóli bekapcsolásához mentsd a dokumentumot.
 	Bottom Margin	Alsó margó
 	Edit Comment	Megjegyzés szerkesztése
@@ -2296,7 +2296,7 @@
 	This folder can't be read: {error}	Ez a mappa nem olvasható: {error}
 	Showing the first {count} items.	Az első {count} elem látható.
 	File name:	Fájlnév:
-	Browse in ICASYS Documentos…	Tallózás a ICASYS Documentosban…
+	Browse in ICASYS Documentos…	Tallózás a WordCraftban…
 	Open a file with ICASYS Documentos's own browser when the system file dialog doesn't appear.	Fájl megnyitása a ICASYS Documentos saját tallózójával, ha a rendszer fájlpárbeszédablaka nem jelenik meg.
 	Hide White Space	Üres terület elrejtése
 	All pages	Minden oldal
@@ -2432,12 +2432,12 @@
 	Use "an" before a vowel sound	Magánhangzóval kezdődő szó előtt „an” áll
 	Use "a" before a consonant sound	Mássalhangzóval kezdődő szó előtt „a” áll
 	The spelling and grammar check is complete.	A helyesírás- és nyelvhelyesség-ellenőrzés befejeződött.
-	Couldn't make ICASYS Documentos the default: {error}	Nem sikerült a ICASYS Documentosot alapértelmezetté tenni: {error}
-	In Default apps, choose ICASYS Documentos for the document types you want it to open.	Az Alapértelmezett alkalmazások között válassza a ICASYS Documentosot azokhoz a dokumentumtípusokhoz, amelyeket meg kell nyitnia.
+	Couldn't make ICASYS Documentos the default: {error}	Nem sikerült a WordCraftot alapértelmezetté tenni: {error}
+	In Default apps, choose ICASYS Documentos for the document types you want it to open.	Az Alapértelmezett alkalmazások között válassza a WordCraftot azokhoz a dokumentumtípusokhoz, amelyeket meg kell nyitnia.
 	Make ICASYS Documentos the default for Word documents…	A ICASYS Documentos legyen az alapértelmezett a Word-dokumentumokhoz…
-	Opens .docx, .doc, .rtf and .odt files and Word templates with ICASYS Documentos from now on.	Mostantól a .docx, .doc, .rtf és .odt fájlok, valamint a Word-sablonok a ICASYS Documentostal nyílnak meg.
-	Opens Settings › Default apps, where you choose ICASYS Documentos for .docx and the other document types.	Megnyitja a Beállítások › Alapértelmezett alkalmazások lapot, ahol a ICASYS Documentosot választhatja a .docx és a többi dokumentumtípus számára.
-	To open Word documents with ICASYS Documentos by default: select one in Finder, choose File › Get Info, pick ICASYS Documentos under Open with, then click Change All.	Ha a Word-dokumentumokat alapértelmezés szerint a ICASYS Documentostal szeretné megnyitni: jelöljön ki egyet a Finderben, válassza a Fájl › Információ parancsot, a „Megnyitás ezzel” alatt válassza a ICASYS Documentosot, majd kattintson az „Összes módosítása” gombra.
+	Opens .docx, .doc, .rtf and .odt files and Word templates with ICASYS Documentos from now on.	Mostantól a .docx, .doc, .rtf és .odt fájlok, valamint a Word-sablonok a WordCrafttal nyílnak meg.
+	Opens Settings › Default apps, where you choose ICASYS Documentos for .docx and the other document types.	Megnyitja a Beállítások › Alapértelmezett alkalmazások lapot, ahol a WordCraftot választhatja a .docx és a többi dokumentumtípus számára.
+	To open Word documents with ICASYS Documentos by default: select one in Finder, choose File › Get Info, pick ICASYS Documentos under Open with, then click Change All.	Ha a Word-dokumentumokat alapértelmezés szerint a WordCrafttal szeretné megnyitni: jelöljön ki egyet a Finderben, válassza a Fájl › Információ parancsot, a „Megnyitás ezzel” alatt válassza a WordCraftot, majd kattintson az „Összes módosítása” gombra.
 	ICASYS Documentos is now the default app for Word documents.	Mostantól a ICASYS Documentos az alapértelmezett alkalmazás a Word-dokumentumokhoz.
 	Numerals:	Számjegyek:
 	Numerals	Számjegyek

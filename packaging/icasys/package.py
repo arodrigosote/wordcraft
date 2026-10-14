@@ -100,14 +100,32 @@ def macos(out: Path):
     short = VERSION.split("-")[0]
     (app / "Contents/Info.plist").write_text(plist.replace("@VERSION@", VERSION).replace("@SHORT_VERSION@", short).replace("@BUILD_SHA@", commit()[:12]), encoding="utf-8")
     (app / "Contents/PkgInfo").write_text("APPL????")
-    sh("codesign", "--force", "--sign", "-", dst)
-    sh("codesign", "--force", "--sign", "-", app)
+    ident = os.environ.get("APPLE_SIGNING_IDENTITY", "").strip()
+    ent = ROOT / "packaging/macos/entitlements.plist"
+    if ident:   # Developer ID: hardened runtime + secure timestamp (required for notarisation)
+        extra = ["--entitlements", str(ent)] if ent.is_file() else []
+        sh("codesign", "--force", "--options", "runtime", "--timestamp", *extra, "--sign", ident, dst)
+        sh("codesign", "--force", "--options", "runtime", "--timestamp", *extra, "--sign", ident, app)
+        sh("codesign", "--verify", "--strict", "--deep", app)
+    else:       # ad-hoc: runs on this Mac only, Gatekeeper will warn on any other
+        sh("codesign", "--force", "--sign", "-", dst)
+        sh("codesign", "--force", "--sign", "-", app)
     write_licenses(stage / "Licencias")
     (stage / "LEEME.txt").write_text(leeme("macos"), encoding="utf-8")
     os.symlink("/Applications", stage / "Aplicaciones")
     dmg = out / f"icasys-{SLUG}-{VERSION}-macos-{arch}.dmg"
     sh("hdiutil", "create", "-quiet", "-volname", f"{NAME} {VERSION}", "-srcfolder", stage, "-ov", "-format", "UDZO", dmg)
     shutil.rmtree(stage)
+    notarized = False
+    if ident:
+        sh("codesign", "--force", "--timestamp", "--sign", ident, dmg)
+        apple_id, pw, team = (os.environ.get(k, "") for k in ("APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID"))
+        if apple_id and pw and team:
+            sh("xcrun", "notarytool", "submit", dmg, "--apple-id", apple_id, "--password", pw, "--team-id", team, "--wait")
+            sh("xcrun", "stapler", "staple", dmg)
+            sh("xcrun", "stapler", "validate", dmg)
+            notarized = True
+    (out / "signing-macos.json").write_text(json.dumps({"signed": bool(ident), "notarized": notarized, "how": "Developer ID" if ident else "ad-hoc"}), encoding="utf-8")
     print(dmg)
 
 
@@ -166,6 +184,15 @@ def windows(out: Path):
     shutil.rmtree(out / "stage-windows", ignore_errors=True)
     stage.mkdir(parents=True)
     shutil.copy(exe, stage / f"{NAME}.exe")
+    signed = False
+    pfx, pw = os.environ.get("WIN_SIGN_PFX", ""), os.environ.get("WIN_SIGN_PASSWORD", "")
+    if pfx and Path(pfx).is_file():
+        tools = sorted(Path("C:/Program Files (x86)/Windows Kits/10/bin").glob("*/x64/signtool.exe"))
+        if not tools:
+            sys.exit("signtool.exe no encontrado")
+        sh(tools[-1], "sign", "/f", pfx, "/p", pw, "/fd", "SHA256", "/tr", "http://timestamp.digicert.com", "/td", "SHA256", stage / f"{NAME}.exe")
+        signed = True
+    (out / "signing-windows.json").write_text(json.dumps({"signed": signed, "notarized": False, "how": "Authenticode" if signed else "sin firma"}), encoding="utf-8")
     write_licenses(stage / "Licencias")
     (stage / "LEEME.txt").write_text(leeme("windows"), encoding="utf-8")
     z = out / f"{base}.zip"
@@ -190,36 +217,43 @@ def release(dist: Path):
     files = sorted(p for p in dist.iterdir() if p.is_file() and p.suffix in kinds)
     if not files:
         sys.exit("no hay paquetes en dist/")
+    sign = {}
+    for f in dist.glob("signing-*.json"):
+        sign[f.stem.split("-", 1)[1]] = json.loads(f.read_text(encoding="utf-8"))
+    sign.setdefault("linux", {"signed": False, "notarized": False, "how": "sin firma de paquete"})
+    if (dist / "SHA256SUMS.txt.asc").exists() or (dist / "ICASYS-firma-publica.asc").exists():
+        sign["linux"] = {"signed": True, "notarized": False, "how": "suma firmada con GPG"}
     assets = []
     for p in files:
         n = p.name
         arch = "universal" if "universal" in n else "arm64" if ("arm64" in n) else "x64" if ("x64" in n or "x86_64" in n or "amd64" in n) else "?"
-        assets.append({"file": n, "os": kinds[p.suffix], "arch": arch, "kind": "deb" if p.suffix == ".deb" else "tar.gz" if p.suffix == ".gz" else p.suffix[1:], "size_bytes": p.stat().st_size, "sha256": sha256(p)})
+        assets.append({"file": n, "os": kinds[p.suffix], "arch": arch, "kind": "deb" if p.suffix == ".deb" else "tar.gz" if p.suffix == ".gz" else p.suffix[1:], "size_bytes": p.stat().st_size, "sha256": sha256(p), "signing": sign.get(kinds[p.suffix], {})})
     (dist / "SHA256SUMS.txt").write_text("".join(f"{a['sha256']}  {a['file']}\n" for a in assets), encoding="utf-8")
     c = commit()
     (dist / "manifest.json").write_text(json.dumps({
         "name": NAME, "app_id": APP, "version": VERSION, "edition": "icasys", "commit": c, "branch": "icasys",
-        "upstream_base": CFG.get("upstream_base", ""), "signed": False, "notarized": False, "assets": assets,
+        "upstream_base": CFG.get("upstream_base", ""), "signing": sign, "assets": assets,
         "source": f"https://github.com/{OWNER}/{APP}/tree/{c}"}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     mb = lambda n: f"{n / 1048576:.0f} MB"
-    rows = "\n".join(f"| `{a['file']}` | {a['os']} | {a['arch']} | {mb(a['size_bytes'])} |" for a in assets)
-    (dist / "title.txt").write_text(f"{NAME} {VERSION} · edición ICASYS 1 (vista previa)", encoding="utf-8")
-    (dist / "RELEASE_NOTES.md").write_text(f"""# {NAME} {VERSION} — edición ICASYS 1 (vista previa)
+    rows = "\n".join(f"| `{a['file']}` | {a['os']} | {a['arch']} | {mb(a['size_bytes'])} | {a['signing'].get('how', '?')}{' + notarizado' if a['signing'].get('notarized') else ''} |" for a in assets)
+    unsigned = [o for o, v in sign.items() if o in {a['os'] for a in assets} and not v.get("signed")]
+    warn = ("\n## ⚠️ Vista previa: sin firma de distribución en " + ", ".join(unsigned) + "\n\nEstos paquetes no están firmados"
+            + (" ni notarizados" if "macos" in unsigned else "") + f". {'macOS' if 'macos' in unsigned else 'El sistema'} o Windows pueden mostrar una advertencia la primera vez; el `LEEME` de cada paquete explica cómo abrirlos. "
+            "Descárgalos solo de esta página o del sitio oficial de ICASYS y comprueba la suma SHA-256.\n") if unsigned else ""
+    (dist / "title.txt").write_text(f"{NAME} {VERSION} · edición ICASYS 1" + (" (vista previa)" if unsigned else ""), encoding="utf-8")
+    (dist / "RELEASE_NOTES.md").write_text(f"""# {NAME} {VERSION} — edición ICASYS 1
 
 Edición de **ICASYS** (<https://icasys.mx>) del programa de código abierto **{UP}**, creado por el equipo y la comunidad de **ArtCraft** (<https://getartcraft.com>). No es un producto de ArtCraft ni cuenta con su respaldo.
 
 ## Descargas
 
-| Archivo | Sistema | Arquitectura | Tamaño |
-|---|---|---|---|
+| Archivo | Sistema | Arquitectura | Tamaño | Firma |
+|---|---|---|---|---|
 {rows}
 
 Las sumas SHA-256 están en `SHA256SUMS.txt`. Cada paquete trae un `LEEME` con las instrucciones de instalación.
 
-## ⚠️ Vista previa: sin firma de distribución
-
-Estos paquetes **no están firmados ni notarizados** (macOS: firma local; Windows: sin firma; Linux: sin firma de paquete). macOS o Windows pueden mostrar una advertencia la primera vez; el `LEEME` explica cómo abrirlos. Descárgalos solo de esta página o del sitio oficial de ICASYS y comprueba la suma SHA-256.
-
+{warn}
 ## Qué cambia respecto a {UP} {VERSION}
 
 Solo la identidad visible: nombre del producto, iconos, enlaces de ayuda y "Acerca de" hacia ICASYS, y el crédito de atribución. El motor no se modifica. Interfaz en español incluida (excepto donde el proyecto original no la ofrece).
