@@ -798,7 +798,7 @@ mod tests {
         assert_eq!(bg("„шофьор“,"), "„шо-фьор“,");
         assert_eq!(word_breaks_in("таблица", ProofLang::Bg).1, Source::Rules);
         // Latin words in a Bulgarian run are hyphenated as English.
-        for w in ["publication", "WordCraft"] {
+        for w in ["publication", "ICASYS Documentos"] {
             assert_eq!(hyphen_points_in(w, &Limits::default(), ProofLang::Bg), hyphen_points(w, &Limits::default()), "{w}");
         }
     }

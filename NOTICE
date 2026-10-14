@@ -58,3 +58,9 @@ Rust dependencies (egui, eframe, vello_cpu, skrifa, harfrust, krilla, quick-xml,
 are permissively licensed (MIT/Apache-2.0/BSD/ISC/Zlib) and fetched through crates.io.
 
 No Microsoft, Adobe, Avid or Autodesk icons, images, templates or artwork are included.
+
+ICASYS edition
+
+This is a modified version of WordCraft, published by ICASYS (https://icasys.mx).
+It is based on WordCraft by the ArtCraft team and community. The ArtCraft name and logos are not used.
+See ICASYS.md.

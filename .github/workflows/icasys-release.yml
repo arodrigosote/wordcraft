@@ -1,0 +1,109 @@
+name: ICASYS release
+
+# Builds the ICASYS edition for macOS (universal), Linux (x86_64) and Windows (x64) and leaves a DRAFT, pre-release
+# GitHub Release for a human to review and publish. Nothing is signed or notarised; there are no secrets here.
+# Only GitHub's own actions are used (checkout, upload/download-artifact). Trigger: push a tag  icasys-v<version>-<n>.
+on:
+  push:
+    tags: ["icasys-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: icasys-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  build:
+    name: build (${{ matrix.os_name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os_name: macos, runner: macos-14, py: python3 }
+          - { os_name: linux, runner: ubuntu-22.04, py: python3 }
+          - { os_name: windows, runner: windows-2022, py: python }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fonts (craft-fonts, pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: arodrigosote/craft-fonts
+          ref: 8dcdacd5153e64560d109541a47d806f26f048c0
+          path: craft-fonts
+
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libgtk-3-dev libasound2-dev libudev-dev
+
+      - name: Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - name: Build (macOS, arm64 + x86_64)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --release --locked -p wordcraft --target aarch64-apple-darwin
+          cargo build --release --locked -p wordcraft --target x86_64-apple-darwin
+
+      - name: Build (${{ matrix.os_name }})
+        if: runner.os != 'macOS'
+        shell: bash
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: cargo build --release --locked -p wordcraft
+
+      - name: Package
+        shell: bash
+        run: ${{ matrix.py }} packaging/icasys/package.py ${{ matrix.os_name }} --out dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os_name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: draft release
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Manifest, checksums and notes
+        run: python3 packaging/icasys/package.py release --dist dist
+      - name: Draft pre-release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --prerelease --target "$GITHUB_SHA" \
+            --title "$(cat dist/title.txt)" --notes-file dist/RELEASE_NOTES.md \
+            dist/*.dmg dist/*.tar.gz dist/*.deb dist/*.zip dist/SHA256SUMS.txt dist/manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: dist/*

@@ -133,9 +133,9 @@ impl Server {
                 Ok(json!({
                     "protocolVersion": version,
                     "capabilities": {"tools": {}, "resources": {}},
-                    "serverInfo": {"name": "wordcraft", "title": "WordCraft", "version": env!("CARGO_PKG_VERSION"), "websiteUrl": "https://getartcraft.com/apps/wordcraft"},
+                    "serverInfo": {"name": "wordcraft", "title": "ICASYS Documentos", "version": env!("CARGO_PKG_VERSION"), "websiteUrl": "https://icasys.mx"},
                     "instructions": format!(
-                        "{INSTRUCTIONS} Backend: {}. Community: https://discord.gg/artcraft · https://getartcraft.com/apps/wordcraft · https://github.com/storytold/wordcraft",
+                        "{INSTRUCTIONS} Backend: {}. Community: https://icasys.mx · https://icasys.mx · https://github.com/arodrigosote/wordcraft",
                         self.backend.describe()
                     ),
                 }))

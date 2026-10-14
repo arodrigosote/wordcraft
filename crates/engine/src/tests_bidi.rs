@@ -196,7 +196,7 @@ fn word_moves_follow_reading_order() {
 #[test]
 fn typing_persian_keeps_logical_order() {
     let mut s = session("", true);
-    for w in ["سلام", " ", "WordCraft", " ", "۱۴۰۳"] {
+    for w in ["سلام", " ", "ICASYS Documentos", " ", "۱۴۰۳"] {
         run(&mut s, "text.insert", json!({"text": w}));
     }
     assert_eq!(s.doc.plain_text(StoryRef::Body), "سلام WordCraft ۱۴۰۳");
