@@ -18,6 +18,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: never
   CARGO_INCREMENTAL: "0"
+  PYTHONUTF8: "1"
 
 jobs:
   build:

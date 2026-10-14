@@ -30,7 +30,7 @@ def version():
 
 
 def commit():
-    return os.environ.get("GITHUB_SHA") or subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    return os.environ.get("GITHUB_SHA") or subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8").stdout.strip()
 
 
 VERSION = version()
@@ -47,7 +47,7 @@ def write_licenses(dest: Path):
         for p in base.rglob("*"):
             if p.is_file() and (p.name.startswith("OFL") or p.name.startswith("LICENSE") or p.name == "ATTRIBUTION.md") and "target" not in p.parts:
                 shutil.copy(p, dest / f"{base.name}-{p.parent.name}-{p.name}")
-    meta = subprocess.run(["cargo", "metadata", "--locked", "--format-version", "1"], cwd=ROOT, capture_output=True, text=True)
+    meta = subprocess.run(["cargo", "metadata", "--locked", "--format-version", "1"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
     if meta.returncode == 0:
         m = json.loads(meta.stdout)
         ws = set(m["workspace_members"])
