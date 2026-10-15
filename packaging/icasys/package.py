@@ -9,7 +9,8 @@
 Config: packaging/icasys/icasys.json (written by icasys-brand/apply-branding.py).
 Nothing here is signed or notarised: the notes and the LEEME say so explicitly.
 """
-import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tarfile, time, zipfile
+import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tarfile, time, uuid, zipfile
+from xml.sax.saxutils import escape as xml_escape
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -69,10 +70,13 @@ def leeme(os_name: str) -> str:
                        "Si macOS dice que no puede verificar al desarrollador: clic derecho sobre la app > Abrir > Abrir, o Ajustes del Sistema > Privacidad y seguridad > \"Abrir de todos modos\".\n"
                        "Comprueba el archivo descargado con:  shasum -a 256 -c SHA256SUMS.txt\n") + tail
     if os_name == "windows":
-        return head + ("INSTALAR: descomprime la carpeta donde quieras y abre el .exe (versión portable, no requiere instalación).\nPRIMER ARRANQUE: el programa TODAVÍA NO está firmado, "
-                       "así que Windows SmartScreen puede avisar. Pulsa \"Más información\" > \"Ejecutar de todos modos\" solo si lo descargaste del sitio oficial de ICASYS.\n"
+        return head + ("INSTALAR: abre el archivo .msi y sigue el asistente (pide permiso de administrador). Se instala en Archivos de programa, "
+                       "crea el acceso en el menú Inicio y se desinstala desde Configuración > Aplicaciones.\n"
+                       "INSTALACIÓN SILENCIOSA (administradores):  msiexec /i <archivo>.msi /qn\n"
+                       "PRIMER ARRANQUE: el instalador TODAVÍA NO está firmado, así que Windows SmartScreen puede avisar. Pulsa \"Más información\" > "
+                       "\"Ejecutar de todos modos\" solo si lo descargaste del sitio oficial de ICASYS.\n"
                        "Comprueba el archivo descargado (PowerShell):  Get-FileHash <archivo> -Algorithm SHA256\n") + tail
-    return head + (f"INSTALAR (.deb, Debian/Ubuntu):  sudo apt install ./icasys-{SLUG}_*.deb\nPORTABLE (.tar.gz): descomprime y ejecuta ./{APP}\n"
+    return head + (f"INSTALAR (.deb, Debian/Ubuntu):  sudo apt install ./icasys-{SLUG}_*.deb\nDESINSTALAR:  sudo apt remove icasys-{SLUG}\n"
                    "Requiere un entorno gráfico X11 o Wayland con OpenGL/Vulkan.\nComprueba el archivo descargado con:  sha256sum -c SHA256SUMS.txt\n") + tail
 
 
@@ -144,7 +148,7 @@ def linux(out: Path):
     desktop = next((ROOT / "packaging/linux").glob("*.desktop"))
     app_id = desktop.stem
     icons = ROOT / "assets/app-icon/hicolor"
-    # --- portable tar.gz
+    PORTABLE = os.environ.get("ICASYS_PORTABLE") == "1"   # portable archives are no longer published by default
     base = f"icasys-{SLUG}-{VERSION}-linux-{arch}"
     stage = out / "stage-linux" / base
     shutil.rmtree(out / "stage-linux", ignore_errors=True)
@@ -156,8 +160,9 @@ def linux(out: Path):
     write_licenses(stage / "Licencias")
     (stage / "LEEME.txt").write_text(leeme("linux"), encoding="utf-8")
     tgz = out / f"{base}.tar.gz"
-    with tarfile.open(tgz, "w:gz") as t:
-        t.add(stage, arcname=base)
+    if PORTABLE:
+        with tarfile.open(tgz, "w:gz") as t:
+            t.add(stage, arcname=base)
     # --- .deb
     deb = out / "stage-linux" / "deb"
     (deb / "usr/bin").mkdir(parents=True)
@@ -182,34 +187,127 @@ def linux(out: Path):
     debfile = out / f"icasys-{SLUG}_{VERSION}-icasys1_{deb_arch}.deb"
     sh("dpkg-deb", "--root-owner-group", "--build", deb, debfile)
     shutil.rmtree(out / "stage-linux")
-    print(tgz, debfile)
+    print(debfile)
+
+
+def rtf(text: str) -> str:
+    out = []
+    for ch in text:
+        if ch in "\\{}":
+            out.append("\\" + ch)
+        elif ch == "\n":
+            out.append("\\par\n")
+        elif ord(ch) > 127:
+            out.append("\\u%d?" % (ord(ch) if ord(ch) < 32768 else ord(ch) - 65536))
+        elif ch != "\r":
+            out.append(ch)
+    return "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Segoe UI;}}\\fs18 " + "".join(out) + "}"
 
 
 def windows(out: Path):
     exe = ROOT / "target" / "release" / f"{APP}.exe"
-    base = f"icasys-{SLUG}-{VERSION}-windows-x64"
-    stage = out / "stage-windows" / NAME
-    shutil.rmtree(out / "stage-windows", ignore_errors=True)
-    stage.mkdir(parents=True)
-    shutil.copy(exe, stage / f"{NAME}.exe")
+    stage = out / "stage-windows"
+    shutil.rmtree(stage, ignore_errors=True)
+    (stage / "app").mkdir(parents=True)
+    shutil.copy(exe, stage / "app" / f"{NAME}.exe")
     signed = False
     pfx, pw = os.environ.get("WIN_SIGN_PFX", ""), os.environ.get("WIN_SIGN_PASSWORD", "")
+    signtool = None
     if pfx and Path(pfx).is_file():
         tools = sorted(Path("C:/Program Files (x86)/Windows Kits/10/bin").glob("*/x64/signtool.exe"))
         if not tools:
             sys.exit("signtool.exe no encontrado")
-        sh(tools[-1], "sign", "/f", pfx, "/p", pw, "/fd", "SHA256", "/tr", "http://timestamp.digicert.com", "/td", "SHA256", stage / f"{NAME}.exe")
+        signtool = tools[-1]
+        sh(signtool, "sign", "/f", pfx, "/p", pw, "/fd", "SHA256", "/tr", "http://timestamp.digicert.com", "/td", "SHA256", stage / "app" / f"{NAME}.exe")
         signed = True
+    write_licenses(stage / "app" / "Licencias")
+    (stage / "app" / "LEEME.txt").write_text(leeme("windows"), encoding="utf-8")
+    # --- license page of the installer
+    mit = (ROOT / "LICENSE-MIT").read_text(encoding="utf-8") if (ROOT / "LICENSE-MIT").is_file() else ""
+    lic = (f"{NAME} {VERSION} (edición ICASYS)\n\nBasado en {UP}, del equipo de ArtCraft (https://getartcraft.com). No es un producto de ArtCraft.\n"
+           "Licencia: MIT o Apache-2.0, a elección del usuario. Los textos completos y los avisos de terceros están en la carpeta Licencias de la instalación.\n\n" + mit)
+    (stage / "license.rtf").write_text(rtf(lic), encoding="ascii")
+    # --- WiX source: one component per file (Guid="*"), the licence files in a Licencias subfolder
+    msi_ver = re.match(r"\d+\.\d+\.\d+", VERSION).group(0)
+    upgrade = str(uuid.uuid5(uuid.NAMESPACE_URL, f"https://icasys.mx/{APP}")).upper()
+    ico = (ROOT / f"assets/app-icon/{APP}.ico").as_posix()
+    comps, lic_comps, n = [], [], 0
+    for p in sorted((stage / "app").rglob("*")):
+        if not p.is_file():
+            continue
+        n += 1
+        rel = p.relative_to(stage / "app")
+        nm = xml_escape(p.name, {'"': "&quot;"})
+        c = f'<Component Id="c{n}" Guid="*"><File Id="f{n}" Source="{p.as_posix()}" Name="{nm}" KeyPath="yes" />{"" if len(rel.parts) == 1 else ""}</Component>'
+        (lic_comps if len(rel.parts) > 1 else comps).append(c)
+    name_x = xml_escape(NAME, {'"': "&quot;"})
+    wxs = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="{name_x}" Manufacturer="ICASYS" Version="{msi_ver}" UpgradeCode="{upgrade}" Scope="perMachine" Language="1034" Compressed="yes">
+    <SummaryInformation Description="{name_x} (edición ICASYS de {xml_escape(UP)})" />
+    <MajorUpgrade DowngradeErrorMessage="Ya hay una versión más reciente de {name_x} instalada." />
+    <MediaTemplate EmbedCab="yes" />
+    <Icon Id="AppIcon.ico" SourceFile="{ico}" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://icasys.mx" />
+    <Property Id="ARPHELPLINK" Value="https://icasys.mx" />
+    <WixVariable Id="WixUILicenseRtf" Value="{(stage / 'license.rtf').as_posix()}" />
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="ICASYSDIR" Name="ICASYS">
+        <Directory Id="INSTALLFOLDER" Name="{name_x}">
+          <Directory Id="LICDIR" Name="Licencias" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">{"".join(comps)}</ComponentGroup>
+    <ComponentGroup Id="LicFiles" Directory="LICDIR">{"".join(lic_comps)}</ComponentGroup>
+    <Component Id="MenuShortcut" Directory="ProgramMenuFolder" Guid="*">
+      <Shortcut Id="StartMenuShortcut" Name="{name_x}" Target="[INSTALLFOLDER]{name_x}.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+      <RegistryValue Root="HKCU" Key="Software\\ICASYS\\{APP}" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+    <Feature Id="Main" Title="{name_x}" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="LicFiles" />
+      <ComponentRef Id="MenuShortcut" />
+    </Feature>
+  </Package>
+</Wix>
+"""
+    (stage / "product.wxs").write_text(wxs, encoding="utf-8")
+    msi = out / f"icasys-{SLUG}-{VERSION}-windows-x64.msi"
+    sh("wix", "build", "-arch", "x64", "-ext", "WixToolset.UI.wixext", "-o", msi, stage / "product.wxs")
+    msi.with_suffix(".wixpdb").unlink(missing_ok=True)   # WiX debug symbols: not a deliverable
+    if signtool:
+        sh(signtool, "sign", "/f", pfx, "/p", pw, "/fd", "SHA256", "/tr", "http://timestamp.digicert.com", "/td", "SHA256", msi)
     (out / "signing-windows.json").write_text(json.dumps({"signed": signed, "notarized": False, "how": "Authenticode" if signed else "sin firma"}), encoding="utf-8")
-    write_licenses(stage / "Licencias")
-    (stage / "LEEME.txt").write_text(leeme("windows"), encoding="utf-8")
-    z = out / f"{base}.zip"
-    with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
-        for p in sorted(stage.rglob("*")):
-            if p.is_file():
-                zf.write(p, p.relative_to(stage.parent))
-    shutil.rmtree(out / "stage-windows")
-    print(z)
+    shutil.rmtree(stage)
+    print(msi)
+
+
+def windows_test(out: Path):
+    """Installs the MSI for real on the runner, checks files and the Start-menu shortcut, uninstalls and checks it is gone."""
+    msis = sorted(out.glob("*.msi"))
+    if not msis:
+        sys.exit("no hay .msi en dist/")
+    msi = msis[0]
+    inst = Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "ICASYS" / NAME
+    lnk = Path(os.environ.get("ProgramData", "C:/ProgramData")) / "Microsoft/Windows/Start Menu/Programs" / f"{NAME}.lnk"
+    log = out / "msi-test.log"
+    r = subprocess.run(["msiexec", "/i", str(msi), "/qn", "/norestart", "/l*v", str(log)])
+    if r.returncode != 0:
+        print(log.read_text(errors="replace")[-3000:]); sys.exit(f"msiexec /i falló ({r.returncode})")
+    problems = [str(p) for p in (inst / f"{NAME}.exe", inst / "LEEME.txt", inst / "Licencias" / "LICENSE-MIT", inst / "Licencias" / "NOTICE", lnk) if not p.exists()]
+    r2 = subprocess.run(["msiexec", "/x", str(msi), "/qn", "/norestart", "/l*v", str(out / "msi-uninstall.log")])
+    left = [str(p) for p in (inst / f"{NAME}.exe", lnk) if p.exists()]
+    for f in (log, out / "msi-uninstall.log"):
+        f.unlink(missing_ok=True)
+    if problems:
+        sys.exit("Instalación incompleta, faltan: " + ", ".join(problems))
+    if r2.returncode != 0 or left:
+        sys.exit(f"La desinstalación no limpió ({r2.returncode}): {left}")
+    print(f"OK: {msi.name} se instala (exe, licencias, acceso del menú Inicio) y se desinstala limpiamente")
 
 
 def sha256(p: Path) -> str:
@@ -221,7 +319,7 @@ def sha256(p: Path) -> str:
 
 
 def release(dist: Path):
-    kinds = {".dmg": "macos", ".zip": "windows", ".deb": "linux", ".gz": "linux"}
+    kinds = {".dmg": "macos", ".msi": "windows", ".zip": "windows", ".deb": "linux", ".gz": "linux"}
     files = sorted(p for p in dist.iterdir() if p.is_file() and p.suffix in kinds)
     if not files:
         sys.exit("no hay paquetes en dist/")
@@ -283,7 +381,7 @@ Sin telemetría, sin cuentas y sin servicios en la nube. Las conexiones de red s
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["macos", "linux", "windows", "release"])
+    ap.add_argument("cmd", choices=["macos", "linux", "windows", "windows-test", "release"])
     ap.add_argument("--out", default="dist")
     ap.add_argument("--dist", default="dist")
     a = ap.parse_args()
@@ -292,4 +390,4 @@ if __name__ == "__main__":
     else:
         out = Path(a.out)
         out.mkdir(parents=True, exist_ok=True)
-        {"macos": macos, "linux": linux, "windows": windows}[a.cmd](out.resolve())
+        {"macos": macos, "linux": linux, "windows": windows, "windows-test": windows_test}[a.cmd](out.resolve())

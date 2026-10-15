@@ -72,6 +72,15 @@ jobs:
           CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
         run: cargo build --release --locked -p wordcraft
 
+      - name: Install WiX (builds the Windows installer)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          echo "$USERPROFILE/.dotnet/tools" >> "$GITHUB_PATH"
+          "$USERPROFILE/.dotnet/tools/wix" extension add --global WixToolset.UI.wixext/5.0.2
+          "$USERPROFILE/.dotnet/tools/wix" --version
+
       # --- Optional signing. Secrets are read ONLY here (never during `cargo build`, which runs third-party build scripts).
       #     Without the secrets the packages are built unsigned and the release notes say so.
       - name: Which signing credentials exist?
@@ -120,6 +129,11 @@ jobs:
           WIN_SIGN_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: ${{ matrix.py }} packaging/icasys/package.py ${{ matrix.os_name }} --out dist
 
+      - name: Test-install the MSI on the runner (install, check, uninstall)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: python packaging/icasys/package.py windows-test --out dist
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.os_name }}
@@ -157,7 +171,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           files=()
-          for f in dist/*.dmg dist/*.tar.gz dist/*.deb dist/*.zip dist/SHA256SUMS.txt dist/SHA256SUMS.txt.asc dist/ICASYS-firma-publica.asc dist/manifest.json; do
+          for f in dist/*.dmg dist/*.msi dist/*.deb dist/*.tar.gz dist/*.zip dist/SHA256SUMS.txt dist/SHA256SUMS.txt.asc dist/ICASYS-firma-publica.asc dist/manifest.json; do
             [ -f "$f" ] && files+=("$f")   # the optional GPG files only exist when signing secrets are set
           done
           gh release create "$GITHUB_REF_NAME" --draft --prerelease --target "$GITHUB_SHA" \
