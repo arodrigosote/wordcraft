@@ -255,9 +255,9 @@ fn general(app: &mut WordApp, ui: &mut Ui) {
     section(ui, "Start-up");
     let mut start = app.ui.start_screen;
     if ui
-        .checkbox(&mut start, tl!("Show the Start screen when WordCraft starts"))
+        .checkbox(&mut start, tl!("Show the Start screen when ICASYS Documentos starts"))
         .on_hover_text(tl!(
-            "On: WordCraft opens on File › Home, with a blank document, the templates and your recent documents. Off: it opens a blank document."
+            "On: ICASYS Documentos opens on File › Home, with a blank document, the templates and your recent documents. Off: it opens a blank document."
         ))
         .changed()
     {
@@ -499,7 +499,7 @@ fn save(app: &mut WordApp, ui: &mut Ui) {
     // The browser can't write to the user's files, so AutoSave can't be turned on there (#176).
     let browser = app.autosave_block() == Some(crate::AutoSaveBlock::Browser);
     let mut autosave = app.autosave && !browser;
-    let r = ui.add_enabled_ui(!browser, |ui| ui.checkbox(&mut autosave, tl!("AutoSave documents you have saved in WordCraft"))).inner;
+    let r = ui.add_enabled_ui(!browser, |ui| ui.checkbox(&mut autosave, tl!("AutoSave documents you have saved in ICASYS Documentos"))).inner;
     if browser {
         r.on_disabled_hover_text(crate::AutoSaveBlock::Browser.reason());
     } else if r.changed() {
@@ -536,7 +536,7 @@ fn language(app: &mut WordApp, ui: &mut Ui) {
     let text = if crate::ribbon::caret_no_proof(app) {
         tl!("The text at the insertion point is marked Do not check spelling or grammar.").to_string()
     } else if !crate::ribbon::caret_language_proofed(app) {
-        crate::i18n::fmt(tl!("{language}: WordCraft doesn't check spelling or grammar in this language yet."), &[("language", &lang)])
+        crate::i18n::fmt(tl!("{language}: ICASYS Documentos doesn't check spelling or grammar in this language yet."), &[("language", &lang)])
     } else {
         let unreadable = crate::ribbon::caret_unreadable_dictionary(app);
         crate::chrome::dictionary_problem(&lang, &unreadable, crate::ribbon::caret_missing_dictionary(app))
@@ -932,23 +932,23 @@ fn overlay<T: DeserializeOwned>(
     }
 }
 
-/// File ▸ Options ▸ General: make WordCraft the default app for Word documents (#295). Only where
+/// File ▸ Options ▸ General: make ICASYS Documentos the default app for Word documents (#295). Only where
 /// the host can (`Services::make_default_app`: Windows opens Default apps, Linux and BSD use
 /// `xdg-mime`); macOS shows how to do it in Finder, the web shows nothing.
 fn default_app_button(app: &mut WordApp, ui: &mut Ui) {
     if app.services.make_default_app.is_some() {
         let hint = if cfg!(target_os = "windows") {
-            tl!("Opens Settings › Default apps, where you choose WordCraft for .docx and the other document types.")
+            tl!("Opens Settings › Default apps, where you choose ICASYS Documentos for .docx and the other document types.")
         } else {
-            tl!("Opens .docx, .doc, .rtf and .odt files and Word templates with WordCraft from now on.")
+            tl!("Opens .docx, .doc, .rtf and .odt files and Word templates with ICASYS Documentos from now on.")
         };
-        if ui.button(tl!("Make WordCraft the default for Word documents…")).on_hover_text(hint).clicked() {
+        if ui.button(tl!("Make ICASYS Documentos the default for Word documents…")).on_hover_text(hint).clicked() {
             // Straight to the hook, not through `run`: only a click may change system defaults.
             let _ = app.make_default_app();
         }
     } else if cfg!(target_os = "macos") {
         ui.label(
-            egui::RichText::new(tl!("To open Word documents with WordCraft by default: select one in Finder, choose File › Get Info, pick WordCraft under Open with, then click Change All."))
+            egui::RichText::new(tl!("To open Word documents with ICASYS Documentos by default: select one in Finder, choose File › Get Info, pick ICASYS Documentos under Open with, then click Change All."))
                 .small()
                 .weak(),
         );

@@ -366,7 +366,7 @@ fn full_context_keeps_the_actual_ancestor_instance_label() {
 }
 
 /// The six legal-list cases measured in Word for Windows by @pakiat:
-/// https://github.com/storytold/wordcraft/pull/4609#issuecomment-6557062456
+/// https://github.com/arodrigosote/wordcraft/pull/4609#issuecomment-6557062456
 #[test]
 fn relative_refs_keep_the_legal_template_in_the_six_measured_contexts() {
     let refs = || [field(r"REF _Leaf \r", "STALE"), field(r"REF _Mid \r", "STALE")].concat();

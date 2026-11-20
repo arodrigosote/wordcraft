@@ -1,0 +1,11 @@
+{
+  "app": "wordcraft",
+  "name": "ICASYS Documentos",
+  "slug": "documentos",
+  "upstream_name": "WordCraft",
+  "upstream_base": "079f478bd85df7bcc567e3bafa7d7219096f9c3c",
+  "owner": "arodrigosote",
+  "es_ui": true,
+  "deb_section": "editors",
+  "craft_i18n_rev": "1e515422afdda2f317af430c1f9d68a5f83935b4"
+}

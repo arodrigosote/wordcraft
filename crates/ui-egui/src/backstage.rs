@@ -61,7 +61,7 @@ fn back_chevron_c(band_min_x: f32, center_y: f32, fullscreen: bool, content_left
 fn bottom_links(app: &WordApp) -> Vec<(&'static str, &'static str)> {
     let mut links = vec![("About", "about")];
     if app.ui.show_discord {
-        links.push(("Discord community", "discord"));
+        links.push(("ICASYS Community", "discord"));
     }
     links
 }
@@ -737,8 +737,8 @@ fn open_page(app: &mut WordApp, ui: &mut Ui) {
     // doesn't show up, WordCraft's own browser is always one click away.
     #[cfg(all(unix, not(target_os = "macos"), not(target_arch = "wasm32")))]
     if ui
-        .button(egui::RichText::new(tl!("Browse in WordCraft…")).font(medium(14.0)))
-        .on_hover_text(tl!("Open a file with WordCraft's own browser when the system file dialog doesn't appear."))
+        .button(egui::RichText::new(tl!("Browse in ICASYS Documentos…")).font(medium(14.0)))
+        .on_hover_text(tl!("Open a file with ICASYS Documentos's own browser when the system file dialog doesn't appear."))
         .clicked()
     {
         let _ = app.run("ui.fileBrowser", json!({}));

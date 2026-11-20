@@ -29,7 +29,7 @@ impl Default for Runtime {
     fn default() -> Self {
         Self {
             #[cfg(not(target_arch = "wasm32"))]
-            updater: Updater::new(&crate::UPDATE_APP, env!("CARGO_PKG_VERSION")).with_translator(translate),
+            updater: Updater::new(&crate::UPDATE_APP, env!("CARGO_PKG_VERSION")).with_source(::std::sync::Arc::new(|| -> ::std::result::Result<::std::option::Option<::craft_update::Release>, ::std::string::String> { Err(::std::string::String::from("ICASYS apps are updated by ICASYS: https://icasys.mx / Las apps de ICASYS se actualizan desde ICASYS: https://icasys.mx")) })).with_translator(translate),
             #[cfg(not(target_arch = "wasm32"))]
             result_dialog: CheckResultDialog::new(&crate::UPDATE_APP, env!("CARGO_PKG_VERSION")).with_translator(translate),
             #[cfg(not(target_arch = "wasm32"))]
@@ -66,7 +66,7 @@ impl WordApp {
     pub fn disable_self_update(&mut self) {
         let rt = &mut self.updates_rt;
         rt.startup_check = false;
-        rt.updater = Updater::new(&crate::UPDATE_APP, env!("CARGO_PKG_VERSION")).with_translator(translate).with_source(refused_check());
+        rt.updater = Updater::new(&crate::UPDATE_APP, env!("CARGO_PKG_VERSION")).with_source(::std::sync::Arc::new(|| -> ::std::result::Result<::std::option::Option<::craft_update::Release>, ::std::string::String> { Err(::std::string::String::from("ICASYS apps are updated by ICASYS: https://icasys.mx / Las apps de ICASYS se actualizan desde ICASYS: https://icasys.mx")) })).with_translator(translate).with_source(refused_check());
     }
 
     /// Starts the helper of an update that is ready, so that it installs once the process has
@@ -82,7 +82,7 @@ impl WordApp {
 /// for Updates shows.
 #[cfg(not(target_arch = "wasm32"))]
 fn refused_check() -> craft_update::updater::CheckSource {
-    let why = tl!("Updates are off in this window: WordCraft was started with another program's AppImage settings. Start WordCraft from its own menu entry to update it.")
+    let why = tl!("Updates are off in this window: ICASYS Documentos was started with another program's AppImage settings. Start ICASYS Documentos from its own menu entry to update it.")
         .to_string();
     std::sync::Arc::new(move || Err(why.clone()))
 }
@@ -215,7 +215,7 @@ mod tests {
     fn a_check_asked_for_while_drawing_opens_the_result_window() {
         let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
         let pins = std::env::temp_dir().join(format!("wordcraft-no-pins-{}.toml", std::process::id()));
-        app.updates_rt.updater = craft_update::updater::Updater::new(&crate::UPDATE_APP, env!("CARGO_PKG_VERSION"))
+        app.updates_rt.updater = craft_update::updater::Updater::new(&crate::UPDATE_APP, env!("CARGO_PKG_VERSION")).with_source(::std::sync::Arc::new(|| -> ::std::result::Result<::std::option::Option<::craft_update::Release>, ::std::string::String> { Err(::std::string::String::from("ICASYS apps are updated by ICASYS: https://icasys.mx / Las apps de ICASYS se actualizan desde ICASYS: https://icasys.mx")) }))
             .with_source(std::sync::Arc::new(|| Err("offline".into())))
             .with_pins_path(pins);
         let ctx = egui::Context::default();
@@ -252,7 +252,7 @@ mod tests {
             std::fs::create_dir_all(record.parent().unwrap()).unwrap();
             std::fs::write(&record, text).unwrap();
             let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
-            app.updates_rt.updater = craft_update::updater::Updater::new(&crate::UPDATE_APP, version)
+            app.updates_rt.updater = craft_update::updater::Updater::new(&crate::UPDATE_APP, version).with_source(::std::sync::Arc::new(|| -> ::std::result::Result<::std::option::Option<::craft_update::Release>, ::std::string::String> { Err(::std::string::String::from("ICASYS apps are updated by ICASYS: https://icasys.mx / Las apps de ICASYS se actualizan desde ICASYS: https://icasys.mx")) }))
                 .with_source(std::sync::Arc::new(|| Ok(None)))
                 .with_paths(craft_update::Paths::under(&root))
                 .with_pins_path(root.join("no-pins.toml"));

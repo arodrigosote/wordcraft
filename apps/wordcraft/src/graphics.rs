@@ -14,7 +14,7 @@ use eframe::{
 /// Intel Macs (HD Graphics 5000 on Big Sur, #2652) Metal's Intel
 /// compiler aborts on them, the device is lost and eframe exits before the window opens. WordCraft
 /// issues no indirect draws or dispatches, so Intel Macs skip them; every other GPU keeps wgpu's
-/// default. Same fix as PhotoCraft's storytold/PhotoCraft#3171.
+/// default. Same fix as PhotoCraft's arodrigosote/PhotoCraft#3171.
 ///
 /// `x86_64` is the build's architecture. An x86_64 build also runs on Apple silicon under Rosetta
 /// (#5199), so it skips only when the machine itself isn't Apple silicon.

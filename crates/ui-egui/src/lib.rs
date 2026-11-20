@@ -11,6 +11,9 @@
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
     icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.wordcraft.png")),
     accent: Some([0x3f, 0x5f, 0xe0]),
+    name: "ICASYS Documentos",
+    developer: "ICASYS",
+    repo: "arodrigosote/wordcraft",
     ..craft_update::suite::WORDCRAFT
 };
 
