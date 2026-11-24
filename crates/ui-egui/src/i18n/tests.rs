@@ -730,7 +730,7 @@ fn a_polish_interface_writes_new_documents_in_polish() {
     let ctx = egui::Context::default();
     let frame = |app: &mut crate::WordApp| ctx.run_ui(egui::RawInput::default(), |ui| app.logic(ui.ctx())).drop_without_applying_deltas();
     frame(&mut app);
-    assert_eq!(app.session.editing_lang, None, "English interface: WordCraft's default, US English");
+    assert_eq!(app.session.editing_lang, None, "English interface: ICASYS Documentos's default, US English");
     assert_eq!(app.session.doc.styles.default_chr.lang.as_deref(), Some("en-US"));
     app.run("ui.language", serde_json::json!({"value": "pl"})).unwrap();
     frame(&mut app);
@@ -1170,7 +1170,7 @@ fn the_languages_offered_are_the_embedded_ones_of_the_list() {
         return;
     }
     let listed: Vec<&str> = LANGUAGES.iter().map(|l| l.code).collect();
-    assert_eq!(all, listed, "every language WordCraft lists has its catalog in craft-i18n");
+    assert_eq!(all, listed, "every language ICASYS Documentos lists has its catalog in craft-i18n");
     assert!(Lang::from_code("pseudo").is_none(), "the pseudo locale is never a setting");
 }
 
@@ -1233,7 +1233,7 @@ fn arabic_lookups_keep_typing_order() {
     let ar = arabic_fixture(concat!(
         "\tTable of Contents\tجدول المحتويات\n",
         "\tPaste Special…\tلصق خاص…\n",
-        "\tAbout WordCraft\tحول WordCraft\n",
+        "\tAbout ICASYS Documentos\tحول ICASYS Documentos\n",
         "\tPassword:\tكلمة المرور:\n",
         "\tTable of\\nContents\tجدول\\nالمحتويات\n",
         "\tPage {page} of {pages}\tالصفحة {page} من {pages}\n",
@@ -1245,7 +1245,7 @@ fn arabic_lookups_keep_typing_order() {
     assert!(ar.rtl());
     assert_eq!(tr(ar, "Table of Contents"), "جدول المحتويات");
     assert_eq!(tr(ar, "Paste Special…"), "لصق خاص…");
-    assert_eq!(tr(ar, "About WordCraft"), "حول WordCraft");
+    assert_eq!(tr(ar, "About ICASYS Documentos"), "حول ICASYS Documentos");
     assert_eq!(tr(ar, "Password:"), "كلمة المرور:");
     // A two-line ribbon label keeps its two lines.
     assert_eq!(tr(ar, "Table of\nContents"), "جدول\nالمحتويات");

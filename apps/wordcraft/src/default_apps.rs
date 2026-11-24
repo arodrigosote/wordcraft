@@ -107,7 +107,7 @@ mod xdg {
     pub(super) fn make_default() -> Result<DefaultApp, String> {
         if std::env::var_os("FLATPAK_ID").is_some() || std::path::Path::new("/.flatpak-info").exists() {
             return Err(
-                "the Flatpak sandbox can't change default apps; choose WordCraft under Open With in your file manager or system settings".into()
+                "the Flatpak sandbox can't change default apps; choose ICASYS Documentos under Open With in your file manager or system settings".into()
             );
         }
         let var = |k: &str| std::env::var(k).ok();

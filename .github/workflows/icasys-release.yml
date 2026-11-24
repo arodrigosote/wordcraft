@@ -1,0 +1,191 @@
+name: ICASYS release
+
+# Builds the ICASYS edition for macOS (universal), Linux (x86_64) and Windows (x64) and leaves a DRAFT, pre-release
+# GitHub Release for a human to review and publish. Nothing is signed or notarised; there are no secrets here.
+# Only GitHub's own actions are used (checkout, upload/download-artifact). Trigger: push a tag  icasys-v<version>-<n>.
+on:
+  push:
+    tags: ["icasys-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: icasys-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: "0"
+  PYTHONUTF8: "1"
+
+jobs:
+  build:
+    name: build (${{ matrix.os_name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os_name: macos, runner: macos-15, py: python3 }
+          - { os_name: linux, runner: ubuntu-22.04, py: python3 }
+          - { os_name: windows, runner: windows-2022, py: python }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fonts (craft-fonts, pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: arodrigosote/craft-fonts
+          ref: b076417b5880bd4154bd22f00695b1d28c6bea83
+          path: craft-fonts
+
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libgtk-3-dev libasound2-dev libudev-dev
+
+      - name: Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - name: Build (macOS, arm64 + x86_64)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+          CRAFT_I18N_DIR: ${{ github.workspace }}/packaging/icasys/craft-i18n
+          CRAFT_I18N_REQUIRED: "1"
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --release --locked -p wordcraft -p wordcraft-cli --target aarch64-apple-darwin
+          cargo build --release --locked -p wordcraft -p wordcraft-cli --target x86_64-apple-darwin
+
+      - name: Build (${{ matrix.os_name }})
+        if: runner.os != 'macOS'
+        shell: bash
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+          CRAFT_I18N_DIR: ${{ github.workspace }}/packaging/icasys/craft-i18n
+          CRAFT_I18N_REQUIRED: "1"
+        run: cargo build --release --locked -p wordcraft -p wordcraft-cli
+
+      - name: Install WiX (builds the Windows installer)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          echo "$USERPROFILE/.dotnet/tools" >> "$GITHUB_PATH"
+          echo "WIX=$(cygpath -w "$USERPROFILE/.dotnet/tools/wix.exe")" >> "$GITHUB_ENV"   # package.py runs exactly this one
+          "$USERPROFILE/.dotnet/tools/wix" extension add --global WixToolset.UI.wixext/5.0.2
+          "$USERPROFILE/.dotnet/tools/wix" --version
+
+      # --- Optional signing. Secrets are read ONLY here (never during `cargo build`, which runs third-party build scripts).
+      #     Without the secrets the packages are built unsigned and the release notes say so.
+      - name: Which signing credentials exist?
+        id: sec
+        shell: bash
+        run: |
+          echo "apple=${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}" >> "$GITHUB_OUTPUT"
+          echo "windows=${{ secrets.WINDOWS_CERTIFICATE != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Import Apple Developer ID certificate
+        if: runner.os == 'macOS' && steps.sec.outputs.apple == 'true'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/icasys-build.keychain-db"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KC"
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          ID="$(security find-identity -v -p codesigning "$KC" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)"
+          [ -n "$ID" ] || { echo "No hay una identidad 'Developer ID Application' en el certificado"; exit 1; }
+          echo "APPLE_SIGNING_IDENTITY=$ID" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      - name: Prepare Windows certificate
+        if: runner.os == 'Windows' && steps.sec.outputs.windows == 'true'
+        shell: bash
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          echo "$WINDOWS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/win.pfx"
+          echo "WIN_SIGN_PFX=$RUNNER_TEMP/win.pfx" >> "$GITHUB_ENV"
+
+      - name: Package
+        shell: bash
+        env:
+          # the fonts embedded at build time: their licences (OFL…) go into each package's Licencias folder
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+          CRAFT_I18N_DIR: ${{ github.workspace }}/packaging/icasys/craft-i18n
+          CRAFT_I18N_REQUIRED: "1"
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WIN_SIGN_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: ${{ matrix.py }} packaging/icasys/package.py ${{ matrix.os_name }} --out dist
+
+      - name: Test-install the MSI on the runner (install, check, uninstall)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: python packaging/icasys/package.py windows-test --out dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os_name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: draft release
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: python3 packaging/icasys/package.py release --dist dist
+      - name: Sign the checksums with GPG (optional)
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then echo "Sin clave GPG: la suma SHA-256 queda sin firmar."; exit 0; fi
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign -o dist/SHA256SUMS.txt.asc dist/SHA256SUMS.txt
+          gpg --armor --export > dist/ICASYS-firma-publica.asc
+      - name: Manifest and notes
+        run: python3 packaging/icasys/package.py release --dist dist
+      - name: Draft pre-release
+        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-test')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files=()
+          for f in dist/*.dmg dist/*.msi dist/*.deb dist/*.tar.gz dist/*.zip dist/SHA256SUMS.txt dist/SHA256SUMS.txt.asc dist/ICASYS-firma-publica.asc dist/manifest.json; do
+            [ -f "$f" ] && files+=("$f")   # the optional GPG files only exist when signing secrets are set
+          done
+          gh release create "$GITHUB_REF_NAME" --draft --prerelease --target "$GITHUB_SHA" \
+            --title "$(cat dist/title.txt)" --notes-file dist/RELEASE_NOTES.md "${files[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: dist/*

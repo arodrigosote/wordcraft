@@ -1,0 +1,7 @@
+ICASYS app icon (every file in this directory).
+
+The ICASYS name and isotype are trademarks of ICASYS (https://icasys.mx). They are NOT covered by the
+MIT / Apache-2.0 licence of this project: you may not use them to identify any other product or
+organisation. They appear here only to identify this ICASYS edition.
+
+The upstream icon was replaced; the original artwork is not part of this edition.
